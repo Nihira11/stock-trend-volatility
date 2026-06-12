@@ -1,8 +1,3 @@
-# ============================================================
-# global.R - packages, constants, theme
-# Sourced automatically by Shiny before app.R runs
-# ============================================================
-
 suppressPackageStartupMessages({
   library(shiny)
   library(bslib)
@@ -10,6 +5,9 @@ suppressPackageStartupMessages({
   library(tidyverse)
   library(plotly)
   library(shinycssloaders)
+  library(zoo)        # rolling windows
+  library(rugarch)    # GARCH family
+  library(memoise)    # cache slow fits
 })
 
 # constants

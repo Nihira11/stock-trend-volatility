@@ -24,7 +24,7 @@ ui <- page_navbar(
   nav_panel("Overview",   mod_overview_ui("overview")),
   nav_panel("Trends",     mod_trends_ui("trends")),
   nav_panel("Risk",       mod_risk_ui("risk")),
-  nav_panel("Volatility", div(class = "p-4 text-muted", "TBD")),
+  nav_panel("Volatility", mod_volatility_ui("volatility")),
   nav_panel("Compare",    div(class = "p-4 text-muted", "TBD"))
 )
 
@@ -68,6 +68,9 @@ server <- function(input, output, session) {
   
   mod_risk_server("risk", prices = prices,
                   ticker = reactive(active_ticker()))
+  
+  mod_volatility_server("volatility", prices = prices,
+                      ticker = reactive(active_ticker()))
 }
 
 shinyApp(ui, server)

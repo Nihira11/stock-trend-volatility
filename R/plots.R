@@ -248,3 +248,61 @@ plot_drawdown <- function(dd, mdd = NULL) {
   }
   p
 }
+
+plot_vol_compare <- function(df, cond_vol, window = 21) {
+  rv <- rolling_vol(df, window)
+  p <- plot_ly() |>
+    add_trace(data = rv, x = ~date, y = ~roll_vol, type = "scatter", mode = "lines",
+              line = list(color = MUTED, width = 1),
+              name = paste0("Realised (", window, "d)"),
+              hovertemplate = "%{x|%d %b %Y}<br>%{y:.1%}<extra>Realised</extra>")
+  if (!is.null(cond_vol))
+    p <- add_trace(p, data = cond_vol, x = ~date, y = ~cond_vol, type = "scatter", mode = "lines",
+                   line = list(color = GOLD, width = 1.4), name = "GARCH conditional",
+                   hovertemplate = "%{x|%d %b %Y}<br>%{y:.1%}<extra>GARCH</extra>")
+  plotly_base_layout(p,
+                     legend = list(orientation = "h", x = 0, y = 1.08, bgcolor = "rgba(0,0,0,0)"),
+                     yaxis = list(title = "Annualised volatility", tickformat = ".0%"),
+                     xaxis = list(title = ""))
+}
+
+plot_garch_forecast <- function(hist_vol, fcast, tail_days = 250) {
+  if (is.null(fcast) || is.null(hist_vol)) return(NULL)
+  h <- utils::tail(hist_vol, tail_days)
+  last_date <- max(h$date)
+  fdates <- last_date + fcast$h
+  fc <- tibble::tibble(date = c(last_date, fdates),
+                       ann_vol = c(h$cond_vol[nrow(h)], fcast$ann_vol))
+  plot_ly() |>
+    add_trace(data = h, x = ~date, y = ~cond_vol, type = "scatter", mode = "lines",
+              line = list(color = GOLD, width = 1.4), name = "Conditional vol",
+              hovertemplate = "%{x|%d %b %Y}<br>%{y:.1%}<extra></extra>") |>
+    add_trace(data = fc, x = ~date, y = ~ann_vol, type = "scatter", mode = "lines",
+              line = list(color = GOLD_SOFT, width = 1.6, dash = "dash"), name = "GARCH forecast",
+              hovertemplate = "%{x|%d %b %Y}<br>%{y:.1%}<extra>Forecast</extra>") |>
+    plotly_base_layout(
+      legend = list(orientation = "h", x = 0, y = 1.08, bgcolor = "rgba(0,0,0,0)"),
+      yaxis = list(title = "Annualised volatility", tickformat = ".0%"),
+      xaxis = list(title = ""),
+      shapes = list(list(type = "rect", xref = "x", x0 = last_date, x1 = max(fdates),
+                         yref = "paper", y0 = 0, y1 = 1,
+                         fillcolor = "rgba(201,162,39,0.06)", line = list(width = 0),
+                         layer = "below")))
+}
+
+plot_news_impact <- function(ni_gjr, ni_sgarch = NULL) {
+  p <- plot_ly()
+  if (!is.null(ni_sgarch))
+    p <- add_trace(p, data = ni_sgarch, x = ~z, y = ~sigma2, type = "scatter", mode = "lines",
+                   line = list(color = MUTED, width = 1.4, dash = "dot"),
+                   name = "sGARCH (symmetric)",
+                   hovertemplate = "z=%{x:.2f}<br>\u03c3\u00b2=%{y:.4f}<extra>sGARCH</extra>")
+  if (!is.null(ni_gjr))
+    p <- add_trace(p, data = ni_gjr, x = ~z, y = ~sigma2, type = "scatter", mode = "lines",
+                   line = list(color = GOLD, width = 1.8), name = "gjrGARCH (asymmetric)",
+                   hovertemplate = "z=%{x:.2f}<br>\u03c3\u00b2=%{y:.4f}<extra>GJR</extra>")
+  plotly_base_layout(p,
+                     legend = list(orientation = "h", x = 0, y = 1.1, bgcolor = "rgba(0,0,0,0)"),
+                     yaxis = list(title = "Next-day variance"),
+                     xaxis = list(title = "Return shock (z)", zeroline = TRUE, zerolinecolor = "#33363D"))
+}
