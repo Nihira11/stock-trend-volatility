@@ -76,7 +76,7 @@ compare_garch <- function(fits) {
   if (!length(rows)) NULL else dplyr::bind_rows(rows)
 }
 
-# memoised fit — keyed on (ret, model); changing ticker/lookback changes ret => fresh fit
+# memoised fit – keyed on (ret, model); changing ticker/lookback changes ret => fresh fit
 fit_garch_m <- memoise::memoise(fit_garch)
 
 #' train on the first `split` of the data, then produce 1-step-ahead

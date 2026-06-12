@@ -1,5 +1,5 @@
 # ============================================================
-# modules/mod_overview.R — Page 1: Overview
+# modules/mod_overview.R – Page 1: Overview
 #
 # Receives a reactive `prices` (already filtered + log returns)
 # and a reactive `ticker` (the active symbol) from app.R.
@@ -64,27 +64,27 @@ mod_overview_server <- function(id, prices, ticker) {
     })
     
     output$vb_price <- renderText({
-      df <- prices(); validate(need(!is.null(df), "—"))
+      df <- prices(); validate(need(!is.null(df), "–"))
       scales::dollar(dplyr::last(df$adjusted), accuracy = 0.01)
     })
     
     output$vb_return <- renderText({
-      df <- prices(); validate(need(!is.null(df), "—"))
+      df <- prices(); validate(need(!is.null(df), "–"))
       scales::percent(dplyr::last(df$cum_return) - 1, accuracy = 0.1, big.mark = ",")
     })
     
     output$vb_high <- renderText({
-      df <- prices(); validate(need(!is.null(df), "—"))
+      df <- prices(); validate(need(!is.null(df), "–"))
       scales::dollar(stats_52w(df)$high, accuracy = 0.01)
     })
     
     output$vb_low <- renderText({
-      df <- prices(); validate(need(!is.null(df), "—"))
+      df <- prices(); validate(need(!is.null(df), "–"))
       scales::dollar(stats_52w(df)$low, accuracy = 0.01)
     })
     
     output$chart_title <- renderText({
-      paste0(ticker(), " — price & moving averages")
+      paste0(ticker(), " – price & moving averages")
     })
     
     output$range_note <- renderText({

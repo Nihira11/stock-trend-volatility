@@ -86,7 +86,7 @@ mod_volatility_server <- function(id, prices, ticker) {
         AIC          = sprintf("%.3f", s$AIC),
         BIC          = sprintf("%.3f", s$BIC),
         Persistence  = sprintf("%.3f", s$persistence),
-        `Leverage γ` = ifelse(is.na(s$gamma), "—",
+        `Leverage γ` = ifelse(is.na(s$gamma), "–",
                               sprintf("%.3f (p=%.3f)", s$gamma, s$gamma_pval)),
         check.names = FALSE
       )
