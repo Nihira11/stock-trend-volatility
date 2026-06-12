@@ -28,18 +28,21 @@ mod_overview_ui <- function(id) {
     card(
       full_screen = TRUE,
       card_header(
-        textOutput(ns("chart_title"), inline = TRUE),
-        div(class = "d-flex flex-wrap gap-3 align-items-center mt-2",
-            checkboxGroupInput(
-              ns("mas"), NULL, inline = TRUE,
-              choices  = c("SMA 20" = "20", "SMA 50" = "50", "SMA 200" = "200"),
-              selected = c("20", "50", "200")
-            ),
-            radioButtons(
-              ns("style"), NULL, inline = TRUE,
-              choices = c("Line" = "line", "Candles" = "candlestick"),
-              selected = "line"
-            )
+        div(
+          class = "d-flex flex-column",
+          div(class = "fw-semibold mb-1",
+              textOutput(ns("chart_title"), inline = TRUE)),
+          div(class = "d-flex flex-wrap gap-3 align-items-center",
+              checkboxGroupInput(
+                ns("mas"), NULL, inline = TRUE,
+                choices  = c("SMA 20" = "20", "SMA 50" = "50", "SMA 200" = "200"),
+                selected = c("20", "50", "200")
+              ),
+              radioButtons(
+                ns("style"), NULL, inline = TRUE,
+                choices = c("Line" = "line", "Candles" = "candlestick"),
+                selected = "line"
+              ))
         )
       ),
       withSpinner(plotlyOutput(ns("chart"), height = "520px"),
