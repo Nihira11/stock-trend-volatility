@@ -22,9 +22,15 @@ mod_compare_ui <- function(id) {
   )
 }
 
-mod_compare_server <- function(id, years) {
+mod_compare_server <- function(id, years, all_tickers) {
   moduleServer(id, function(input, output, session) {
     
+    observe({
+      tickers <- all_tickers()
+      sel <- isolate(if (length(input$syms)) input$syms else c("NVDA", "MSFT", "KO", "^GSPC"))
+      updateSelectizeInput(session, "syms", choices = tickers, selected = sel, server = TRUE)
+    })
+
     updateSelectizeInput(session, "syms", choices = DEFAULT_TICKERS,
                          selected = c("NVDA", "MSFT", "KO", "^GSPC"), server = TRUE)
     
@@ -38,7 +44,19 @@ mod_compare_server <- function(id, years) {
       })
       validate(need(!is.null(df) && nrow(df) > 0 && "symbol" %in% names(df),
                     "Couldn't load those tickers \u2014 check the symbols."))
+      df <- df[!is.na(df$adjusted) & !is.na(df$date), ]
       df
+    })
+    
+    observeEvent(data_multi(), {
+      requested <- utils::head(unique(input$syms), 6)
+      got       <- unique(data_multi()$symbol)
+      missing   <- setdiff(requested, got)
+      if (length(missing)) {
+        showNotification(paste0("Removed unknown ticker(s): ", paste(missing, collapse = ", ")),
+                         type = "warning", duration = 4)
+        updateSelectizeInput(session, "syms", selected = got)
+      }
     })
     
     summ <- reactive(summary_table(data_multi()))

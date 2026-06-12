@@ -32,22 +32,22 @@
 
 # public API
 
-#' Fetch full daily history for one ticker, with RDS caching.
-#' Returns a tibble (symbol, date, open, high, low, close, volume, adjusted) 
+#' fetch full daily history for one ticker, with RDS caching.
+#' returns a tibble (symbol, date, open, high, low, close, volume, adjusted) 
 #' or NULL if the ticker is invalid / Yahoo is unreachable.
 fetch_full_history <- function(ticker) {
   ticker <- toupper(trimws(ticker))
   if (!nzchar(ticker)) return(NULL)
-
+  
   if (!dir.exists(CACHE_DIR)) dir.create(CACHE_DIR, recursive = TRUE)
   path <- .cache_path(ticker)
-
+  
   # 1. fresh cache -> use it
   if (.cache_is_fresh(path)) {
     cached <- tryCatch(readRDS(path), error = function(e) NULL)
     if (.is_valid_price_data(cached)) return(cached)
   }
-
+  
   # 2. fetch full history from Yahoo
   fetched <- tryCatch(
     suppressWarnings(
@@ -56,50 +56,51 @@ fetch_full_history <- function(ticker) {
     ),
     error = function(e) NULL
   )
-
+  
   if (.is_valid_price_data(fetched)) {
     fetched <- dplyr::arrange(fetched, date)
     saveRDS(fetched, path)
     return(fetched)
   }
-
+  
   # 3. fetch failed -> fall back to a stale cache if one exists
   if (file.exists(path)) {
     stale <- tryCatch(readRDS(path), error = function(e) NULL)
     if (.is_valid_price_data(stale)) return(stale)
   }
-
+  
   NULL
 }
 
-#' Main entry point used by the app.
-#' Filters cached full history to [from, to] and appends log returns.
-#' Returns NULL if the ticker is invalid or has no data in range.
+#' main entry point used by the app.
+#' filters cached full history to [from, to] and appends log returns.
+#' returns NULL if the ticker is invalid or has no data in range.
 get_prices <- function(ticker,
                        from = Sys.Date() - lubridate::years(DEFAULT_YEARS),
                        to   = Sys.Date()) {
   df <- fetch_full_history(ticker)
   if (is.null(df)) return(NULL)
-
+  
   df <- dplyr::filter(df, date >= as.Date(from), date <= as.Date(to))
   if (nrow(df) < 2) return(NULL)   # need >= 2 rows for a return
-
+  
   add_log_returns(df)
 }
 
-#' Append daily log returns based on adjusted close.
-#' Adds: log_return (NA for first row), cum_return (growth of 1).
+#' append daily log returns based on adjusted close.
+#' adds: log_return (NA for first row), cum_return (growth of 1).
 add_log_returns <- function(df) {
   df |>
     dplyr::arrange(date) |>
+    dplyr::filter(!is.na(adjusted)) |>          # drop interior gaps before deriving anything
     dplyr::mutate(
       log_return = log(adjusted / dplyr::lag(adjusted)),
       cum_return = exp(cumsum(tidyr::replace_na(log_return, 0)))
     )
 }
 
-#' Fetch several tickers into one long tibble (invalid ones dropped).
-#' Returns NULL if *none* of the tickers were valid.
+#' fetch several tickers into one long tibble (invalid ones dropped).
+#' returns NULL if *none* of the tickers were valid.
 get_prices_multi <- function(tickers,
                              from = Sys.Date() - lubridate::years(DEFAULT_YEARS),
                              to   = Sys.Date()) {

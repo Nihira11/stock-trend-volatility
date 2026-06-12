@@ -42,6 +42,13 @@ server <- function(input, output, session) {
   observeEvent(input$go, {
     req(nzchar(trimws(input$ticker_custom)))
     tk <- toupper(trimws(input$ticker_custom))
+    df <- tryCatch(get_prices(tk, from = Sys.Date() - lubridate::years(input$years)),
+                   error = function(e) NULL)
+    if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) {
+      showNotification(paste0("Couldn't find ticker '", tk, "'. Check the symbol."),
+                       type = "error", duration = 4)
+      return()
+    }
     active_ticker(tk)
     session_tickers(unique(c(session_tickers(), tk)))
     updateSelectizeInput(session, "ticker",
@@ -58,7 +65,9 @@ server <- function(input, output, session) {
       error = function(e) NULL
     )
     if (is.null(df) || !is.data.frame(df) || nrow(df) == 0 ||
-        !all(c("date", "adjusted") %in% names(df))) NULL else df
+        !all(c("date", "adjusted") %in% names(df))) return(NULL)
+    df <- df[!is.na(df$adjusted) & !is.na(df$date), ]   # drop interior gaps so indicators & drawdown stay valid
+    if (nrow(df) == 0) NULL else df
   })
   
   # mount page modules
@@ -74,7 +83,9 @@ server <- function(input, output, session) {
   mod_volatility_server("volatility", prices = prices,
                         ticker = reactive(active_ticker()))
   
-  mod_compare_server("compare", years = reactive(input$years))
+  mod_compare_server("compare",
+                     years       = reactive(input$years),
+                     all_tickers = reactive(unique(c(DEFAULT_TICKERS, session_tickers()))))
 }
 
 shinyApp(ui, server)
