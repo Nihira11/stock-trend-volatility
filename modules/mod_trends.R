@@ -1,5 +1,4 @@
 # ============================================================
-# modules/mod_trends.R — Page 2: Trends
 # Receives reactive `prices` and `ticker` from app.R.
 # Owns page-local indicator settings (RSI window, Bollinger n/sd).
 # ============================================================

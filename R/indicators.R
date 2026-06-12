@@ -1,6 +1,6 @@
-#' append simple moving averages of adjusted close.
-#' adds columns sma_20, sma_50, sma_200 (NA until enough history).
-#' windows longer than the data are skipped silently.
+#' append simple moving averages of adjusted close
+#' adds columns sma_20, sma_50, sma_200 (NA until enough history)
+#' windows longer than the data are skipped silently
 add_moving_averages <- function(df, windows = c(20, 50, 200)) {
   df <- dplyr::arrange(df, date)
   for (w in windows) {
@@ -11,9 +11,9 @@ add_moving_averages <- function(df, windows = c(20, 50, 200)) {
   df
 }
 
-#' 52-week (last ~252 trading days) high / low of adjusted close.
+#' 52-week (last ~252 trading days) high / low of adjusted close
 #' returns list(high = , low = ). Uses whatever history is available
-#' if the window is shorter than a year.
+#' if the window is shorter than a year
 stats_52w <- function(df) {
   recent <- utils::tail(dplyr::arrange(df, date), 252)
   list(
@@ -22,15 +22,13 @@ stats_52w <- function(df) {
   )
 }
 
-# --- Phase 3 indicators ------------------------------------------------------
-
-#' RSI. NA column (never error) if series shorter than the window.
+#' RSI. NA column (never error) if series shorter than the window
 add_rsi <- function(df, n = 14) {
   df$rsi <- if (nrow(df) > n) TTR::RSI(df$adjusted, n = n) else NA_real_
   df
 }
 
-#' MACD in price units (percent = FALSE). Adds macd, macd_signal, macd_hist.
+#' MACD in price units (percent = FALSE). Adds macd, macd_signal, macd_hist
 add_macd <- function(df, fast = 12, slow = 26, signal = 9) {
   if (nrow(df) > slow + signal) {
     m <- TTR::MACD(df$adjusted, nFast = fast, nSlow = slow, nSig = signal,
@@ -44,7 +42,7 @@ add_macd <- function(df, fast = 12, slow = 26, signal = 9) {
   df
 }
 
-#' Bollinger bands. Adds bb_lower, bb_mavg, bb_upper, bb_pct (position in band).
+#' bollinger bands. Adds bb_lower, bb_mavg, bb_upper, bb_pct (position in band)
 add_bollinger <- function(df, n = 20, sd = 2) {
   if (nrow(df) >= n) {
     b <- TTR::BBands(df$adjusted, n = n, sd = sd)
@@ -59,8 +57,8 @@ add_bollinger <- function(df, n = 20, sd = 2) {
   df
 }
 
-#' Golden/death crosses from sma_50 vs sma_200. tibble(date, type, price).
-#' The first non-NA row has no prior sign, so it can never register as a cross.
+#' golden/death crosses from sma_50 vs sma_200. tibble(date, type, price)
+#' the first non-NA row has no prior sign, so it can never register as a cross
 detect_crossovers <- function(df) {
   empty <- tibble::tibble(date = as.Date(character()),
                           type = character(), price = numeric())
@@ -83,7 +81,7 @@ detect_crossovers <- function(df) {
   )
 }
 
-#' Trend label from the last row + the numbers that justify it (for the badge).
+#' trend label from the last row + the numbers that justify it (for the badge)
 classify_trend <- function(df) {
   last   <- df[nrow(df), ]
   price  <- last$adjusted
