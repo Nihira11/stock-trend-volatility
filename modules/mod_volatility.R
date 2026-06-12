@@ -34,7 +34,7 @@ mod_volatility_server <- function(id, prices, ticker) {
   moduleServer(id, function(input, output, session) {
     
     rets <- reactive({
-      df <- prices(); req(!is.null(df), nrow(df) > 1)
+      df <- require_prices(prices())
       list(ret = log_returns(df), dates = df$date[-1], df = df)
     })
     

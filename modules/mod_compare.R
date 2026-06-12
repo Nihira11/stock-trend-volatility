@@ -32,9 +32,13 @@ mod_compare_server <- function(id, years) {
       syms <- input$syms
       validate(need(length(syms) >= 2, "Pick at least 2 tickers to compare."))
       syms <- utils::head(unique(syms), 6)
-      withProgress(message = "Loading tickers\u2026", value = 0.5, {
-        get_prices_multi(syms, from = Sys.Date() - lubridate::years(years()))
+      df <- withProgress(message = "Loading tickers\u2026", value = 0.5, {
+        tryCatch(get_prices_multi(syms, from = Sys.Date() - lubridate::years(years())),
+                 error = function(e) NULL)
       })
+      validate(need(!is.null(df) && nrow(df) > 0 && "symbol" %in% names(df),
+                    "Couldn't load those tickers \u2014 check the symbols."))
+      df
     })
     
     summ <- reactive(summary_table(data_multi()))

@@ -53,10 +53,12 @@ server <- function(input, output, session) {
   # shared data: every page consumes this
   prices <- reactive({
     req(active_ticker())
-    get_prices(
-      active_ticker(),
-      from = Sys.Date() - lubridate::years(input$years)
+    df <- tryCatch(
+      get_prices(active_ticker(), from = Sys.Date() - lubridate::years(input$years)),
+      error = function(e) NULL
     )
+    if (is.null(df) || !is.data.frame(df) || nrow(df) == 0 ||
+        !all(c("date", "adjusted") %in% names(df))) NULL else df
   })
   
   # mount page modules

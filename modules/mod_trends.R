@@ -39,12 +39,10 @@ mod_trends_server <- function(id, prices, ticker) {
   moduleServer(id, function(input, output, session) {
     
     enriched <- reactive({
-      df <- prices(); req(!is.null(df), nrow(df) > 0)
+      df <- require_prices(prices())
       df |>
         add_moving_averages(windows = c(20, 50, 200)) |>
-        add_rsi(n = input$rsi_n) |>
-        add_macd() |>
-        add_bollinger(n = input$bb_n, sd = input$bb_sd)
+        add_rsi(n = input$rsi_n) |> add_macd() |> add_bollinger(n = input$bb_n, sd = input$bb_sd)
     })
     
     crosses <- reactive(detect_crossovers(enriched()))

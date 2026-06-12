@@ -33,9 +33,13 @@ mod_risk_ui <- function(id) {
 mod_risk_server <- function(id, prices, ticker) {
   moduleServer(id, function(input, output, session) {
     
-    ret <- reactive({ df <- prices(); req(!is.null(df), nrow(df) > 30); log_returns(df) })
-    mdd <- reactive({ df <- prices(); req(!is.null(df), nrow(df) > 1);  max_drawdown(df) })
-    
+    ret <- reactive({
+      df <- require_prices(prices())
+      validate(need(nrow(df) > 30, "Need more history for return statistics."))
+      log_returns(df)
+    })
+    mdd <- reactive(max_drawdown(require_prices(prices())))
+
     output$vb_ret    <- renderText(scales::percent(ann_return(ret()),     accuracy = 0.1))
     output$vb_vol    <- renderText(scales::percent(ann_volatility(ret()), accuracy = 0.1))
     output$vb_sharpe <- renderText(sprintf("%.2f", sharpe_ratio(ret())))
