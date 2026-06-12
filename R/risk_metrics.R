@@ -55,3 +55,30 @@ cvar_historical <- function(ret, p = 0.95) {
   if (!length(tail)) return(NA_real_)
   -mean(tail, na.rm = TRUE)
 }
+
+# assumes df_multi is LONG with a `symbol` column (tidyquant default).
+summary_table <- function(df_multi) {
+  df_multi |>
+    dplyr::group_by(symbol) |>
+    dplyr::group_modify(~{
+      d      <- dplyr::arrange(.x, date)
+      ret    <- diff(log(d$adjusted))
+      wealth <- d$adjusted / d$adjusted[1]
+      mdd    <- max_drawdown(tibble::tibble(date = d$date, cum_return = wealth))
+      tibble::tibble(ann_return = ann_return(ret), ann_vol = ann_volatility(ret),
+                     sharpe = sharpe_ratio(ret), max_dd = mdd$max)
+    }) |>
+    dplyr::ungroup()
+}
+
+cor_matrix <- function(df_multi) {
+  wide <- df_multi |>
+    dplyr::group_by(symbol) |>
+    dplyr::arrange(date, .by_group = TRUE) |>
+    dplyr::mutate(log_ret = c(NA, diff(log(adjusted)))) |>
+    dplyr::ungroup() |>
+    dplyr::select(date, symbol, log_ret) |>
+    tidyr::pivot_wider(names_from = symbol, values_from = log_ret) |>
+    dplyr::arrange(date)
+  stats::cor(as.matrix(wide[, -1]), use = "pairwise.complete.obs")
+}

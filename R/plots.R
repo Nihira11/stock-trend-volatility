@@ -306,3 +306,48 @@ plot_news_impact <- function(ni_gjr, ni_sgarch = NULL) {
                      yaxis = list(title = "Next-day variance"),
                      xaxis = list(title = "Return shock (z)", zeroline = TRUE, zerolinecolor = "#33363D"))
 }
+
+COMPARE_COLS <- c("#C9A227", "#5F9E6E", "#C0564B", "#6FA8DC", "#B07CC6", "#E3C565")
+
+plot_cum_returns <- function(df_multi) {
+  d <- df_multi |>
+    dplyr::group_by(symbol) |>
+    dplyr::arrange(date, .by_group = TRUE) |>
+    dplyr::mutate(rebased = 100 * adjusted / dplyr::first(adjusted)) |>
+    dplyr::ungroup()
+  plot_ly(d, x = ~date, y = ~rebased, color = ~symbol, colors = COMPARE_COLS,
+          type = "scatter", mode = "lines", line = list(width = 1.4),
+          hovertemplate = "%{x|%d %b %Y}<br>%{y:.0f}<extra>%{fullData.name}</extra>") |>
+    plotly_base_layout(
+      legend = list(orientation = "h", x = 0, y = 1.08, bgcolor = "rgba(0,0,0,0)"),
+      yaxis = list(title = "Growth of 100 (log)", type = "log"), xaxis = list(title = ""))
+}
+
+plot_cor_heatmap <- function(cm) {
+  syms <- colnames(cm)
+  ann <- list()
+  for (i in seq_along(syms)) for (j in seq_along(syms))
+    ann[[length(ann) + 1]] <- list(x = syms[j], y = syms[i],
+                                   text = sprintf("%.2f", cm[i, j]), showarrow = FALSE,
+                                   font = list(color = INK, size = 11))
+  plot_ly(x = syms, y = syms, z = cm, type = "heatmap", zmin = -1, zmax = 1,
+          colorscale = list(list(0, "#C0564B"), list(0.5, "#1C1E22"), list(1, "#5F9E6E")),
+          colorbar = list(title = "\u03c1", tickformat = ".1f"),
+          hovertemplate = "%{y} \u2013 %{x}: %{z:.2f}<extra></extra>") |>
+    plotly_base_layout(
+      xaxis = list(title = ""), yaxis = list(title = "", autorange = "reversed"),
+      annotations = ann)
+}
+
+plot_risk_return <- function(summary) {
+  plot_ly(summary, x = ~ann_vol, y = ~ann_return, type = "scatter",
+          mode = "markers+text", text = ~symbol, textposition = "top center",
+          textfont = list(color = INK, size = 11),
+          marker = list(size = 14, color = ~sharpe, colorscale = "Viridis",
+                        showscale = TRUE, colorbar = list(title = "Sharpe"),
+                        line = list(color = INK, width = 1)),
+          hovertemplate = "%{text}<br>Vol %{x:.1%}<br>Return %{y:.1%}<extra></extra>") |>
+    plotly_base_layout(
+      xaxis = list(title = "Annualised volatility", tickformat = ".0%"),
+      yaxis = list(title = "Annualised return",     tickformat = ".0%"))
+}
