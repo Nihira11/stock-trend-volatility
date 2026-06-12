@@ -78,3 +78,49 @@ compare_garch <- function(fits) {
 
 # memoised fit — keyed on (ret, model); changing ticker/lookback changes ret => fresh fit
 fit_garch_m <- memoise::memoise(fit_garch)
+
+#' train on the first `split` of the data, then produce 1-step-ahead
+#' conditional vol over the held-out tail using the TRAIN parameters
+#' (ugarchfilter with fixed coefficients). Compares to realised vol
+garch_oos_eval <- function(ret, dates, model = "gjrGARCH", split = 0.8) {
+  keep <- !is.na(ret); ret <- as.numeric(ret[keep]); dates <- dates[keep]
+  n <- length(ret)
+  if (n < 600) return(NULL)
+  n_train <- floor(split * n)
+  
+  spec <- rugarch::ugarchspec(
+    variance.model = list(model = model, garchOrder = c(1, 1)),
+    mean.model = list(armaOrder = c(0, 0), include.mean = TRUE),
+    distribution.model = "std")
+  fit <- tryCatch(rugarch::ugarchfit(spec, ret[seq_len(n_train)], solver = "hybrid"),
+                  error = function(e) NULL)
+  if (is.null(fit)) return(NULL)
+  
+  # apply train params to the FULL series -> genuine 1-step-ahead OOS sigma
+  rugarch::setfixed(spec) <- as.list(rugarch::coef(fit))
+  filt <- tryCatch(rugarch::ugarchfilter(spec, ret), error = function(e) NULL)
+  if (is.null(filt)) return(NULL)
+  sigma_all <- as.numeric(rugarch::sigma(filt)) * sqrt(TRADING_DAYS)
+  realized  <- zoo::rollapply(ret, 21, stats::sd, align = "right", fill = NA) * sqrt(TRADING_DAYS)
+  
+  test <- (n_train + 1):n
+  df <- tibble::tibble(date = dates[test], forecast = sigma_all[test], realized = realized[test])
+  df <- df[stats::complete.cases(df), ]
+  
+  rmse  <- sqrt(mean((df$forecast - df$realized)^2))
+  naive <- realized[n_train]                                   # "vol stays flat" benchmark
+  rmse0 <- sqrt(mean((df$realized - naive)^2))
+  list(n_train = n_train, n_test = nrow(df), rmse = rmse,
+       skill = 1 - rmse / rmse0, series = df)
+}
+
+#' engle's ARCH-LM test for volatility clustering (no extra dependency).
+arch_lm_test <- function(ret, lags = 12) {
+  e <- as.numeric(stats::na.omit(ret)); e <- e - mean(e)
+  u <- e^2; n <- length(u)
+  if (n <= lags + 1) return(NULL)
+  em  <- stats::embed(u, lags + 1)
+  r2  <- summary(stats::lm(em[, 1] ~ em[, -1, drop = FALSE]))$r.squared
+  list(statistic = (n - lags) * r2, df = lags,
+       p_value = stats::pchisq((n - lags) * r2, df = lags, lower.tail = FALSE))
+}

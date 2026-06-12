@@ -5,3 +5,5 @@ require_prices <- function(df) {
   validate(need(!is.null(df) && is.data.frame(df) && nrow(df) > 0, INVALID_TICKER_MSG))
   df
 }
+
+fmt_p <- function(p) if (is.na(p)) "NA" else if (p < 0.001) "< 0.001" else sprintf("%.3f", p)

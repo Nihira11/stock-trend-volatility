@@ -1,0 +1,28 @@
+# Files rsconnect should NOT upload to shinyapps.io.
+# (rsconnect ignores .gitignore, so this list is separate and necessary.)
+
+# auto-loads on app start and can inject stale objects -> exclude
+.RData
+.Rhistory
+
+# editor / OS / project cruft
+.Rproj.user/
+*.Rproj
+.DS_Store
+__MACOSX/
+.lintr
+
+# version control
+.git/
+.gitignore
+
+# not needed at runtime (keeps the bundle lean)
+tests/
+docs/
+build-plan.md
+
+# NOTE: cache/ is intentionally NOT ignored.
+# Shipping the pre-warmed RDS cache means the live demo shows data
+# instantly instead of making the first visitor wait for a Yahoo fetch
+# (or hit a rate-limit error). It's only ~2 MB. The app's 24h refresh
+# logic keeps it current after deploy.

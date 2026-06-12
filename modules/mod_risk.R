@@ -22,6 +22,12 @@ mod_risk_ui <- function(id) {
                     "1-day VaR: the loss exceeded only (1 \u2212 confidence) of days.")
       )
     ),
+    card(
+      card_header("VaR backtest \u2014 Kupiec proportion-of-failures"),
+      uiOutput(ns("var_backtest")),
+      card_footer(class = "text-muted small",
+                  "In-sample check of the parametric (normal) VaR. Historical VaR is calibrated in-sample by construction, so only the parametric model is tested.")
+    ),
     card(full_screen = TRUE,
          card_header("Drawdown from peak"),
          withSpinner(plotlyOutput(ns("dd"), height = "320px"), color = GOLD, type = 4),
@@ -74,6 +80,22 @@ mod_risk_server <- function(id, prices, ticker) {
       paste0("Worst drawdown ", scales::percent(m$max, accuracy = 0.1),
              ": peak ", format(m$peak_date, "%d %b %Y"),
              " \u2192 trough ", format(m$trough_date, "%d %b %Y"), " (", rec, ").")
+    })
+    
+    output$var_backtest <- renderUI({
+      bt <- var_backtest(ret())
+      rows <- lapply(seq_len(nrow(bt)), function(i) {
+        r <- bt[i, ]
+        light <- if (r$p_value >= 0.05) c("#5F9E6E", "well calibrated")
+        else if (r$p_value >= 0.01) c("#C9A227", "borderline")
+        else c("#C0564B", "rejected \u2014 too many breaches")
+        tags$div(class = "d-flex align-items-center gap-2 mb-2",
+                 tags$span(style = paste0("color:", light[1], ";font-size:1.2rem;"), "\u25CF"),
+                 tags$span(HTML(sprintf(
+                   "<b>%s VaR</b> \u2014 expected %.0f breaches, observed %d (%.1f\u00d7), Kupiec p = %s \u2014 %s",
+                   r$level, r$expected, r$observed, r$ratio, fmt_p(r$p_value), light[2]))))
+      })
+      tags$div(rows)
     })
   })
 }

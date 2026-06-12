@@ -1,31 +1,53 @@
 mod_volatility_ui <- function(id) {
   ns <- NS(id)
   tagList(
-    card(full_screen = TRUE,
-         card_header("Realised vs GARCH conditional volatility"),
-         withSpinner(plotlyOutput(ns("vol_compare"), height = "380px"), color = GOLD, type = 4)
+    card(
+      full_screen = TRUE,
+      card_header("Realised vs GARCH conditional volatility"),
+      withSpinner(plotlyOutput(ns("vol_compare"), height = "360px"), color = GOLD, type = 4)
     ),
+    
     layout_columns(
-      col_widths = c(6, 6),
-      card(card_header("Model comparison"),
-           tableOutput(ns("model_table")),
-           card_footer(class = "text-muted small",
-                       "Lower AIC/BIC = better fit. Persistence = how long vol shocks linger.")),
-      card(full_screen = TRUE,
-           card_header("News-impact curve"),
-           withSpinner(plotlyOutput(ns("news"), height = "300px"), color = GOLD, type = 4),
-           card_footer(class = "text-muted small",
-                       "Steeper left arm = negative shocks raise volatility more (leverage)."))
+      col_widths = c(5, 7),
+      card(
+        card_header("Model comparison"),
+        tableOutput(ns("model_table")),
+        card_footer(
+          class = "text-muted small",
+          "Lower AIC/BIC = better fit. Persistence = how long vol shocks linger."
+        )
+      ),
+      card(
+        card_header("What the model says"),
+        uiOutput(ns("interpretation"))
+      )
     ),
-    layout_columns(
-      col_widths = c(8, 4),
-      card(full_screen = TRUE,
-           card_header(div(class = "d-flex flex-column",
-                           div(class = "fw-semibold mb-1", "Volatility forecast"),
-                           sliderInput(ns("horizon"), NULL, min = 10, max = 60, value = 30, step = 5, width = "100%"))),
-           withSpinner(plotlyOutput(ns("forecast"), height = "320px"), color = GOLD, type = 4)),
-      card(card_header("What the model says"),
-           uiOutput(ns("interpretation")))
+    
+    navset_card_tab(
+      nav_panel(
+        "Forecast",
+        card_header(
+          div(
+            class = "d-flex flex-column",
+            div(class = "fw-semibold mb-1", "Volatility forecast"),
+            sliderInput(ns("horizon"), NULL, min = 10, max = 60, value = 30, step = 5, width = "100%")
+          )
+        ),
+        withSpinner(plotlyOutput(ns("forecast"), height = "320px"), color = GOLD, type = 4)
+      ),
+      nav_panel(
+        "Out-of-sample check",
+        withSpinner(plotlyOutput(ns("oos_chart"), height = "320px"), color = GOLD, type = 4),
+        card_footer(class = "text-muted small", uiOutput(ns("oos_note")))
+      ),
+      nav_panel(
+        "News-impact curve",
+        withSpinner(plotlyOutput(ns("news"), height = "320px"), color = GOLD, type = 4),
+        card_footer(
+          class = "text-muted small",
+          "Steeper left arm = negative shocks raise volatility more (leverage)."
+        )
+      )
     )
   )
 }
@@ -82,24 +104,61 @@ mod_volatility_server <- function(id, prices, ticker) {
       plot_garch_forecast(cv, fc)
     })
     
+    archTest <- reactive(arch_lm_test(rets()$ret, lags = 12))
+    
     output$interpretation <- renderUI({
-      s <- summ(); bm <- best()
-      bestrow <- s[s$model == bm, ]; gjr <- s[s$model == "gjrGARCH", ]
-      bullets <- list(paste0("Best fit by BIC: <b>", bm, "</b> (BIC ",
-                             sprintf("%.3f", bestrow$BIC), ")."))
-      if (nrow(gjr) == 1 && !is.na(gjr$gamma)) {
-        sig <- if (!is.na(gjr$gamma_pval) && gjr$gamma_pval < 0.05) "significant" else "not significant"
-        bullets <- c(bullets, paste0(
-          "Leverage γ = ", sprintf("%.3f", gjr$gamma), " (p = ",
-          sprintf("%.3f", gjr$gamma_pval), ", ", sig,
-          "): negative shocks raise next-day variance more than equal positive ones."))
+      s <- summ(); bm <- best(); bullets <- list()
+      
+      a <- archTest()
+      if (!is.null(a)) {
+        cl <- if (a$p_value < 0.05) "present" else "not detected"
+        tail_txt <- if (a$p_value >= 0.05) " \u2014 GARCH may add little here."
+        else " \u2014 GARCH is warranted."
+        bullets <- c(bullets, sprintf(
+          "Volatility clustering: <b>%s</b> (ARCH-LM p = %s)%s", cl, fmt_p(a$p_value), tail_txt))
       }
-      p <- bestrow$persistence
-      if (!is.na(p) && p < 1) bullets <- c(bullets, paste0(
-        "Persistence = ", sprintf("%.3f", p),
-        " \u2192 vol shocks decay with a half-life of ~",
-        sprintf("%.0f", log(0.5) / log(p)), " trading days."))
+      
+      bullets <- c(bullets, sprintf("Best fit by BIC: <b>%s</b> (BIC %.3f).",
+                                    bm, s$BIC[s$model == bm]))
+      
+      # leverage from the model that actually carries it
+      lev_rows <- s[!is.na(s$gamma), ]
+      lev <- if (bm %in% lev_rows$model) lev_rows[lev_rows$model == bm, ]
+      else if (nrow(lev_rows) > 0) lev_rows[which.min(lev_rows$gamma_pval), ]
+      else NULL
+      if (!is.null(lev) && nrow(lev) == 1) {
+        sig <- if (!is.na(lev$gamma_pval) && lev$gamma_pval < 0.05) "significant" else "not significant"
+        bullets <- c(bullets, sprintf(
+          "Leverage (%s): \u03b3 = %.3f (p = %s, %s) \u2014 negative shocks raise next-day variance more than equal positive ones.",
+          lev$model, lev$gamma, fmt_p(lev$gamma_pval), sig))
+      }
+      
+      pr <- s$persistence[s$model == bm]
+      if (length(pr) == 1 && !is.na(pr) && pr < 1)
+        bullets <- c(bullets, sprintf(
+          "Persistence = %.3f \u2192 vol shocks decay with a half-life of ~%.0f trading days.",
+          pr, log(0.5) / log(pr)))
+      
       tags$ul(lapply(bullets, function(b) tags$li(HTML(b))))
+    })
+    
+    oos <- reactive({
+      rr <- rets()
+      validate(need(length(rr$ret) >= 600, "Need \u2265 ~3 years of history for an out-of-sample test."))
+      withProgress(message = "Backtesting the forecast\u2026", value = 0.5,
+                   garch_oos_eval(rr$ret, rr$dates, model = best()))
+    })
+    output$oos_chart <- renderPlotly({
+      e <- oos(); validate(need(!is.null(e), "Out-of-sample fit didn't converge."))
+      plot_oos_vol(e$series)
+    })
+    output$oos_note <- renderUI({
+      e <- oos(); req(!is.null(e))
+      verdict <- if (e$skill > 0)
+        sprintf("beats a constant-vol benchmark by %.0f%% (RMSE)", 100 * e$skill)
+      else sprintf("does <b>not</b> beat a constant-vol benchmark (%.0f%%)", 100 * e$skill)
+      HTML(sprintf("Trained on %d days, tested on %d held-out days. The GARCH forecast %s.",
+                   e$n_train, e$n_test, verdict))
     })
   })
 }

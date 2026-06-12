@@ -351,3 +351,16 @@ plot_risk_return <- function(summary) {
       xaxis = list(title = "Annualised volatility", tickformat = ".0%"),
       yaxis = list(title = "Annualised return",     tickformat = ".0%"))
 }
+
+plot_oos_vol <- function(series) {
+  plot_ly(series, x = ~date) |>
+    add_trace(y = ~realized, type = "scatter", mode = "lines",
+              line = list(color = MUTED, width = 1), name = "Realised (held-out)",
+              hovertemplate = "%{x|%d %b %Y}<br>%{y:.1%}<extra>Realised</extra>") |>
+    add_trace(y = ~forecast, type = "scatter", mode = "lines",
+              line = list(color = GOLD, width = 1.4), name = "GARCH (out-of-sample)",
+              hovertemplate = "%{x|%d %b %Y}<br>%{y:.1%}<extra>GARCH</extra>") |>
+    plotly_base_layout(
+      legend = list(orientation = "h", x = 0, y = 1.1, bgcolor = "rgba(0,0,0,0)"),
+      yaxis = list(title = "Annualised vol", tickformat = ".0%"), xaxis = list(title = ""))
+}

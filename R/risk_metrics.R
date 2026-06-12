@@ -82,3 +82,30 @@ cor_matrix <- function(df_multi) {
     dplyr::arrange(date)
   stats::cor(as.matrix(wide[, -1]), use = "pairwise.complete.obs")
 }
+
+#' kupiec proportion-of-failures test for a fixed VaR threshold
+#' var_loss is a POSITIVE loss; an exceedance is a day with ret < -var_loss
+kupiec_test <- function(ret, var_loss, p) {
+  ret <- as.numeric(stats::na.omit(ret))
+  N   <- length(ret)
+  x   <- sum(ret < -var_loss)
+  pi_exp <- 1 - p
+  pi_obs <- x / N
+  lr <- if (x == 0) {
+    -2 * N * log(1 - pi_exp)
+  } else {
+    -2 * ((N - x) * log((1 - pi_exp) / (1 - pi_obs)) + x * log(pi_exp / pi_obs))
+  }
+  list(N = N, exceedances = x, expected = pi_exp * N,
+       ratio = pi_obs / pi_exp, p_value = stats::pchisq(lr, df = 1, lower.tail = FALSE))
+}
+
+#' backtest the parametric (normal) VaR at each confidence level
+var_backtest <- function(ret, p = c(0.95, 0.99)) {
+  vp <- var_parametric(ret, p)
+  purrr::map2_dfr(p, vp, function(pl, v) {
+    k <- kupiec_test(ret, v, pl)
+    tibble::tibble(level = paste0(pl * 100, "%"), expected = k$expected,
+                   observed = k$exceedances, ratio = k$ratio, p_value = k$p_value)
+  })
+}
