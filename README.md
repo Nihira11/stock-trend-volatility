@@ -10,9 +10,7 @@ An interactive R/Shiny dashboard for equity **trend**, **risk**, and **volatilit
 ![Models](https://img.shields.io/badge/volatility-rugarch%20GARCH-555)
 
 > **Live demo:** https://nihirasharma.shinyapps.io/stock-trend-volatility/ &nbsp;·&nbsp; *(free tier sleeps – first load takes ~30 s)*
-
-![Overview page](screenshots/overview.png)
-
+> 
 ---
 
 ## What it does
@@ -22,12 +20,12 @@ Type any ticker – US (`NVDA`, `MSFT`), an index (`^GSPC`), or ASX (`CBA.AX`) �
 ### Overview
 Price with SMA 20/50/200 overlays (line or candlestick), a volume subplot coloured by up/down day, and value boxes for last close, period return, and 52-week high/low. The default NVDA view spans 10 years and ~2,500 trading days.
 
-![Trends page](screenshots/trends.png)
+![Overview page](screenshots/overview.png)
 
 ### Trends
 A trend badge (uptrend / downtrend / sideways) derived from price vs SMA 200 and the 50/200 relationship, plus last RSI and days since the last crossover. The Crossovers tab marks every golden cross (gold ▲) and death cross (red ▼) against price and the two moving averages; tabs for Bollinger Bands, RSI, and MACD sit alongside.
 
-![Risk page](screenshots/risk.png)
+![Trends page](screenshots/trends.png)
 
 ### Risk
 Annualised return, volatility, Sharpe, and max drawdown as headline stats. A distribution-of-returns chart overlays the empirical histogram with a fitted normal so the fat tails are visible, with 95%/99% VaR marked as cutoffs; a companion table reports historical and parametric VaR plus 95% CVaR (expected shortfall).
@@ -36,7 +34,7 @@ The page also backtests VaR using exceedance counts and the Kupiec proportion-of
 
 The drawdown panel charts underwater periods and annotates the worst peak → trough → recovery.
 
-![Volatility page](screenshots/volatility.png)
+![Risk page](screenshots/risk.png)
 
 ### Volatility 
 The centrepiece. Rolling realised volatility plotted against GARCH conditional volatility, a model-comparison table across sGARCH / eGARCH / gjrGARCH (AIC, BIC persistence, leverage γ), a news-impact curve that visualises the asymmetry, a 10–60 day forecast, and a plain-English interpretation panel that translates the winning model's parameters into half-lives and leverage statements.
@@ -45,10 +43,12 @@ Before fitting any GARCH model, an ARCH-LM test checks whether volatility cluste
 
 The page also evaluates predictive performance out-of-sample using an 80/20 train-test split: models are fit on the training window and forecast volatility into the held-out period, where forecast accuracy is compared against realised volatility and a constant-volatility benchmark.
 
-![Compare page](screenshots/compare.png)
+![Volatility page](screenshots/volatility.png)
 
 ### Compare
 Two to six tickers side by side: cumulative returns rebased to 100, a risk-vs-return scatter coloured by Sharpe, a return-correlation heatmap, and a summary table. Dates are aligned across markets before correlating, so an ASX name and a US name are compared only on their common trading days.
+
+![Compare page](screenshots/compare.png)
 
 ---
 
