@@ -1,7 +1,9 @@
 
 # Stock Trend Analysis & Volatility Insights
 
-An interactive R/Shiny dashboard for equity **trend**, **risk**, and **volatility** analysis. It pulls live daily prices from Yahoo Finance, computes the indicators and risk statistics a desk analyst actually uses, and fits a family of GARCH models to quantify and forecast volatility – including the leverage effect that makes downside shocks hit harder than upside ones.
+An interactive R/Shiny dashboard for analysing stock prices, trends, risk and volatility.
+
+The app downloads daily market data from Yahoo Finance, calculates common technical indicators and risk measures and uses GARCH models to study and forecast volatility. It can also measure the leverage effect, where negative price movements often increase future volatility more than positive movements of the same size.
 
 [![Live app](https://img.shields.io/badge/live%20app-shinyapps.io-C9A227)](https://nihirasharma.shinyapps.io/stock-trend-volatility/)
 &nbsp;
@@ -9,44 +11,149 @@ An interactive R/Shiny dashboard for equity **trend**, **risk**, and **volatilit
 &nbsp;
 ![Models](https://img.shields.io/badge/volatility-rugarch%20GARCH-555)
 
-> **Live demo:** https://nihirasharma.shinyapps.io/stock-trend-volatility/ &nbsp;·&nbsp; *(free tier sleeps – first load takes ~30 s)*
-> 
+> **Live demo:** https://nihirasharma.shinyapps.io/stock-trend-volatility/ &nbsp;·&nbsp;
+*The app uses a free hosting plan, so the first load may take around 30 seconds.*
+
 ---
 
-## What it does
+## What the app does
 
-Type any ticker – US (`NVDA`, `MSFT`), an index (`^GSPC`), or ASX (`CBA.AX`) – pick a lookback window, and five pages analyse it live. Everything is computed from **adjusted** close (split- and dividend-corrected) on **daily log returns**, the conventions that make the maths additive across time and consistent with the GARCH literature.
+Enter any supported ticker, such as:
+- US stock: `NVDA` or `MSFT`
+- Market index: `^GSPC`
+- Australian stock: `CBA.AX`
+
+Then choose a time period. The app downloads the data and analyses it across five pages.
+
+All calculations use the **adjusted closing price**, which accounts for stock splits and dividends. Risk calculations use **daily log returns**, which are commonly used in financial and GARCH models.
 
 ### Overview
-Price with SMA 20/50/200 overlays (line or candlestick), a volume subplot coloured by up/down day, and value boxes for last close, period return, and 52-week high/low. The default NVDA view spans 10 years and ~2,500 trading days.
+The Overview page provides a summary of the selected stock.
+
+It includes:
+- Price chart with 20-day, 50-day and 200-day moving averages
+- Line chart or candlestick chart
+- Daily trading volume
+- Latest closing price
+- Total return over the selected period
+- 52-week high and low
+
+The default `NVDA` view covers ten years and around 2,500 trading days.
 
 ![Overview page](screenshots/overview.png)
 
 ### Trends
-A trend badge (uptrend / downtrend / sideways) derived from price vs SMA 200 and the 50/200 relationship, plus last RSI and days since the last crossover. The Crossovers tab marks every golden cross (gold ▲) and death cross (red ▼) against price and the two moving averages; tabs for Bollinger Bands, RSI, and MACD sit alongside.
+The Trends page studies the direction and strength of the stock’s price movement.
+
+It includes:
+- Uptrend, downtrend or sideways trend label
+- Current RSI value
+- Days since the latest moving-average crossover
+- Golden cross and death cross signals
+- Bollinger Bands
+- RSI chart
+- MACD chart
+
+The trend label is based on:
+- Current price compared with the 200-day moving average
+- Relationship between the 50-day and 200-day moving averages
+
+Golden crosses are marked with gold triangles, while death crosses are marked with red triangles
 
 ![Trends page](screenshots/trends.png)
 
 ### Risk
-Annualised return, volatility, Sharpe, and max drawdown as headline stats. A distribution-of-returns chart overlays the empirical histogram with a fitted normal so the fat tails are visible, with 95%/99% VaR marked as cutoffs; a companion table reports historical and parametric VaR plus 95% CVaR (expected shortfall).
+The Risk page measures the return and downside risk of the selected stock.
 
-The page also backtests VaR using exceedance counts and the Kupiec proportion-of-failures test, answering a question most dashboards ignore: did the reported VaR actually get breached at roughly the rate it claimed Traffic-light indicators highlight under - or over-estimation of tail risk.
+Main results include:
+- Annualised return
+- Annualised volatility
+- Sharpe ratio
+- Maximum drawdown
+- Historical Value at Risk
+- Parametric Value at Risk
+- Conditional Value at Risk
 
-The drawdown panel charts underwater periods and annotates the worst peak → trough → recovery.
+A return distribution chart compares the stock’s actual returns with a fitted normal distribution. This makes it easier to see whether the stock has more extreme returns than a normal model expects.
+
+The chart also marks the 95% and 99% Value at Risk limits.
+
+#### Value at Risk Backtesting
+
+The app checks whether the VaR model worked correctly using:
+- Number of actual VaR breaches
+- Expected number of breaches
+- Kupiec proportion-of-failures test
+
+For example, a 99% VaR model should be breached on approximately 1% of trading days.
+
+Traffic-light labels show whether the model:
+- Estimates risk reasonably
+- Underestimates risk
+- Overestimates risk
+
+#### Drawdown Analysis
+
+The drawdown chart shows periods when the stock remained below its previous highest price.
+
+It identifies:
+- Previous price peak
+- Lowest point
+- Maximum loss
+- Recovery date
 
 ![Risk page](screenshots/risk.png)
 
 ### Volatility 
-The centrepiece. Rolling realised volatility plotted against GARCH conditional volatility, a model-comparison table across sGARCH / eGARCH / gjrGARCH (AIC, BIC persistence, leverage γ), a news-impact curve that visualises the asymmetry, a 10–60 day forecast, and a plain-English interpretation panel that translates the winning model's parameters into half-lives and leverage statements.
 
 Before fitting any GARCH model, an ARCH-LM test checks whether volatility clustering is present and therefore whether GARCH modelling is warranted.
 
 The page also evaluates predictive performance out-of-sample using an 80/20 train-test split: models are fit on the training window and forecast volatility into the held-out period, where forecast accuracy is compared against realised volatility and a constant-volatility benchmark.
 
+The Volatility page is the main modelling section of the dashboard. It compares actual market volatility with volatility estimated by GARCH models.
+
+The page includes:
+- Rolling realised volatility
+- GARCH conditional volatility
+- sGARCH, eGARCH, and gjrGARCH model comparison
+- AIC and BIC scores
+- Volatility persistence
+- Leverage effect
+- News-impact curve
+- Volatility forecasts from 10 to 60 days
+- Simple explanations of the winning model
+
+#### ARCH-LM Test
+Before fitting a GARCH model, the app runs an ARCH-LM test. This checks whether volatility clustering is present. Volatility clustering means that calm periods and highly volatile periods tend to appear in groups. If this pattern is not present, using a GARCH model may not be useful.
+
+#### Out-of-Sample Testing
+The GARCH models are also tested on data that was not used for training. 
+
+The data is divided into:
+- 80% training data
+- 20% test data
+
+The models are trained on the first 80% and then used to predict volatility during the remaining 20%
+
+The forecasts are compared with:
+- Actual realised volatility
+- A simple constant-volatility model
+
+This shows whether the models can predict future volatility rather than only explain past movements
+
 ![Volatility page](screenshots/volatility.png)
 
 ### Compare
-Two to six tickers side by side: cumulative returns rebased to 100, a risk-vs-return scatter coloured by Sharpe, a return-correlation heatmap, and a summary table. Dates are aligned across markets before correlating, so an ASX name and a US name are compared only on their common trading days.
+The Compare page allows users to analyse between two and six assets together.
+
+It includes:
+- Cumulative returns starting from 100
+- Risk-versus-return chart
+- Sharpe ratio comparison
+- Return correlation heatmap
+- Summary table
+
+Trading dates are matched before calculating correlations. This means Australian and US stocks are only compared on dates when both markets have data.
 
 ![Compare page](screenshots/compare.png)
 
@@ -54,7 +161,7 @@ Two to six tickers side by side: cumulative returns rebased to 100, a risk-vs-re
 
 ## Findings
 
-Numbers below are from the default ticker set over a 10-year window (to 11 Jun 2026). They're illustrative of *why* the tool exists, not investment advice.
+The following findings use the default ticker group over a ten-year period ending on 11 June 2026. They are examples of what the dashboard can identify and are not investment advice.
 
 - **A risk model is only useful if it survives backtesting.** The VaR backtest compares observed exceedances against the model's expected breach rate using the Kupiec proportion-of-failures test. Several equities showed materially more 99% VaR breaches than predicted by the normal distribution, reinforcing the conclusion that equity returns are fat-tailed and that parametric normal VaR systematically understates extreme downside risk.
 
@@ -72,89 +179,106 @@ Numbers below are from the default ticker set over a 10-year window (to 11 Jun 2
 
 ## Methodology
 
-| Choice | Why |
+| Method | Purpose |
 | --- | --- |
-| **Adjusted close** | Corrects for splits and dividends, so returns reflect total economic gain, not artefacts. |
-| **Log returns** | Time-additive (sum of daily log returns = period log return) and the convention GARCH is built on. |
-| **√252 annualisation** | 252 trading days/year; volatility scales with √time under an i.i.d. assumption – which GARCH then explicitly relaxes. |
-| **Student-t innovations** | Equity returns are fat-tailed; a normal GARCH underestimates tail risk. `distribution.model = "std"` fits the kurtosis. |
-| **VaR, both ways** | Historical VaR is non-parametric (no shape assumption); parametric (normal) VaR is its smooth counterpart. Reporting both shows where the normal assumption breaks. |
-| **CVaR / Expected Shortfall** | The average loss *beyond* VaR – a coherent risk measure that captures how bad the tail gets, not just where it starts. |
-| **GARCH family** | sGARCH (symmetric baseline), eGARCH and gjrGARCH (capture the leverage effect). Model choice by BIC. |
-| **Kupiec VaR Backtest** | Tests whether observed VaR exceedances occur at the frequency the model claims. A 99% VaR should be breached on roughly 1% of days. |
-| **ARCH-LM Test** | Checks whether volatility clustering exists before fitting GARCH models. Avoids applying volatility models where they are not warranted. |
-| **Out-of-Sample Validation** | GARCH forecasts are evaluated on a held-out test set to distinguish explanatory power from genuine predictive performance. |
+| **Adjusted close** | Accounts for stock splits and dividends so returns show the full change in value |
+| **Log returns** | Makes daily returns easier to combine across time and matches standard GARCH methods |
+| **√252 annualisation** | Converts daily volatility into annual volatility using approximately 252 trading days |
+| **Student-t innovations** | Better handles extreme stock returns than a normal distribution |
+| **Historical VaR** | Calculates risk using actual past returns without assuming a specific distribution |
+| **Parametric VaR** | Calculates risk using an assumed normal distribution |
+| **CVaR / Expected Shortfall** | Measures the average loss after the VaR limit has already been exceeded |
+| **sGARCH** | Provides a basic model where positive and negative shocks have the same effect |
+| **eGARCH and gjrGARCH** | Allow negative shocks to affect volatility differently from positive shocks |
+| **Kupiec test** | Checks whether VaR is breached as often as the model predicts |
+| **ARCH-LM Test** | Checks whether volatility clustering exists before using GARCH |
+| **Out-of-Sample Validation** | Measures model performance using data that was not included during training |
 
-All risk and volatility maths lives in pure functions under `R/` and is covered by unit
-tests with hand-computed expected values (see below).
+All risk and volatility calculations are stored as reusable functions inside the `R/` folder.
+The functions are tested using expected values calculated by hand.
 
 ---
 
 ## Architecture
 
 ```
-app.R                 # global state: active ticker, lookback, shared prices() reactive, module mounting
-global.R              # libraries, constants, theme, plotly_base_layout(); sources R/
-stock-trend-volatility.Rproj
-.gitignore
-.rscignore
-.lintr
-README.md
-
-R/
-  data_fetch.R        # Yahoo Finance fetch, full-history RDS cache, stale-cache fallback
-  indicators.R        # SMAs, RSI, MACD, Bollinger Bands, crossovers, trend classification
-  plots.R             # all plotly charts and shared chart styling
-  risk_metrics.R      # log returns, Sharpe, drawdown, VaR/CVaR, Kupiec tests, correlations
-  utils.R             # formatting helpers, validation helpers, shared utilities
-  volatility.R        # ARCH-LM, rolling vol, GARCH fits, forecasts, OOS validation, news impact
-
-modules/
-  mod_compare.R       # multi-ticker comparison page
-  mod_overview.R      # price, volume, stats overview page
-  mod_risk.R          # risk metrics, VaR, backtesting, drawdown page
-  mod_trends.R        # RSI, MACD, Bollinger, crossover page
-  mod_volatility.R    # GARCH modelling, forecast, validation page
-
-tests/
-  test_compare.R
-  test_data_fetch.R
-  test_indicators.R
-  test_risk_metrics.R
-  test_volatility.R
-
-screenshots/
-  overview.png        # Overview page screenshot
-  trends.png          # Trends page screenshot
-  risk.png            # Risk page screenshot
-  volatility.png      # Volatility page screenshot
-  compare.png         # Compare page screenshot
-
-www/
-  custom.css          # app styling
+stock-trend-volatility/
+│
+├── app.R                              # Controls the selected ticker, time period, shared price data, and pages
+├── global.R                           # Loads packages, settings, themes, and functions
+├── stock-trend-volatility.Rproj
+├── .gitignore
+├── .rscignore
+├── .lintr
+├── README.md
+│
+├── R/
+│   ├── data_fetch.R                   # Downloads Yahoo Finance data and manages cached files
+│   ├── indicators.R                   # Moving averages, RSI, MACD, Bollinger Bands, and crossovers
+│   ├── plots.R                        # Creates Plotly charts and shared chart designs
+│   ├── risk_metrics.R                 # Returns, Sharpe ratio, drawdowns, VaR, CVaR, and correlations
+│   ├── utils.R                        # Formatting, validation, and shared helper functions
+│   └── volatility.R                   # ARCH tests, GARCH models, forecasts, and validation
+│
+├── modules/
+│   ├── mod_compare.R                  # Multi-ticker comparison page
+│   ├── mod_overview.R                 # Price, volume, stats overview page
+│   ├── mod_risk.R                     # Risk metrics, VaR, backtesting, drawdown page
+│   ├── mod_trends.R                   # RSI, MACD, Bollinger, crossover page
+│   └── mod_volatility.R               # GARCH modelling, forecast, validation page
+│
+├── tests/
+│   ├── test_compare.R
+│   ├── test_data_fetch.R
+│   ├── test_indicators.R
+│   ├── test_risk_metrics.R
+│   └── test_volatility.R
+│
+├── screenshots/
+│   ├── overview.png
+│   ├── trends.png
+│   ├── risk.png
+│   ├── volatility.png
+│   └── compare.png
+│
+└── www/
+    └── custom.css                     # App styling
 ```
 
-Three design rules kept it maintainable:
+### Application Design
 
-1. **All maths is pure and lives in `R/`.** Functions take a data frame and return a data frame or list – no `input$`, no `reactive()`, no `render*()`. That's what makes them testable and reusable.
-2. **Modules own pages; `app.R` owns only global state.** Each page receives the shared `prices()` reactive and owns just its page-local controls. `app.R` stays under 80 lines.
-3. **Caching is two-layered.** Full price history is fetched once and cached to RDS, so any lookback change filters locally with no refetch. GARCH fits – the expensive step – are memoised, keyed on the return series and model, so revisiting a ticker is instant.
+The project follows three main design rules.
+
+#### 1. Calculations Are Separate From the Dashboard
+All financial calculations are stored inside the `R/` folder. The functions receive data and return results without depending directly on Shiny. This makes them easier to test, reuse and understand.
+
+#### 2. Each Page Has Its Own Module
+Each dashboard page is stored in a separate module. The main `app.R` file only manages information shared across the app, such as the selected ticker and downloaded prices. This keeps the main file short and organised.
+
+#### 3. Data and Models Are Cached
+The app uses two levels of caching:
+
+- Full price history is downloaded once and stored locally
+- GARCH model results are saved so they do not need to be calculated again
+
+Changing the time period filters the saved price data instead of downloading it again. Returning to a previously analysed ticker also loads the saved GARCH result more quickly.
 
 ---
 
 ## Run locally
 
 ```r
+# Install the required R packages:
 install.packages(c(
   "shiny", "bslib", "tidyquant", "tidyverse", "plotly",
   "TTR", "PerformanceAnalytics", "rugarch", "zoo",
   "shinycssloaders", "memoise", "testthat", "rsconnect"
 ))
 
+# Start the application:
 shiny::runApp()
 ```
-
-First launch fetches and caches price history, so give it a moment. Subsequent loads are served from the local `cache/`.
+The first launch downloads and saves the required price history, so it may take a little longer. Later loads use the locally saved data.
 
 ## Tests
 
@@ -162,26 +286,37 @@ First launch fetches and caches price history, so give it a moment. Subsequent l
 testthat::test_dir("tests")
 ```
 
-The suite asserts against hand-computed values: crossover detection on a toy series with known flip points, RSI bounded in [0, 100], drawdown peak/trough/recovery on a
-five-point path, 95% VaR ≈ 1.645% on simulated N(0, 0.01) data, CVaR > VaR, rolling-vol warm-up, and correct log-return arithmetic against the data layer.
+The tests check:
+- Moving-average crossover detection
+- RSI remains between 0 and 100
+- Drawdown peak, lowest point, and recovery calculations
+- 95% VaR calculations
+- CVaR is greater than VaR
+- Rolling-volatility calculations
+- Log-return calculations
+- Data downloading and comparison functions
+- GARCH and volatility functions
 
 ---
 
 ## Stack
 
-R · Shiny (bslib) · tidyquant · TTR · PerformanceAnalytics · rugarch · plotly · zoo · memoise · testthat
+R · Shiny · bslib · tidyquant · tidyverse · TTR · PerformanceAnalytics · rugarch · plotly · zoo · memoise · testthat
 
 ---
 
 ## Future work
 
-- Add downloadable PDF risk reports using R Markdown.
-- Add rolling beta vs `^GSPC` and rolling correlation analysis.
-- Add portfolio-level analysis with custom ticker weights.
-- Add benchmark comparison for each ticker against `^GSPC`.
-- Add model diagnostics for GARCH residuals, including QQ plots and Ljung-Box tests.
-- Add deployment monitoring and clearer fallback messages when Yahoo Finance data is unavailable.
+Possible improvements include:
+
+- Export risk reports as PDF files
+- Add rolling beta against the S&P 500
+- Add rolling correlation analysis
+- Add portfolio analysis using custom investment weights
+- Compare every stock with the S&P 500
+- Add GARCH residual checks such as QQ plots and Ljung–Box tests
+- Add monitoring and clearer error messages when Yahoo Finance data is unavailable
 
 ---
 
-*Data: Yahoo Finance via `tidyquant`, adjusted close. This project is for analysis and demonstration only and is not investment advice.*
+*Data: Yahoo Finance via `tidyquant`using adjusted closing prices. This project is for analysis and demonstration only and is not investment advice*
