@@ -35,3 +35,27 @@ test_that("VaR on N(0, 0.01) is ~1.645% and CVaR exceeds VaR", {
                var_parametric(r, 0.95)[["95%"]], tolerance = 0.001)   # agree on normal data
   expect_true(cvar_historical(r, 0.95) > var_historical(r, 0.95)[["95%"]])
 })
+
+test_that("kupiec detects an over-conservative VaR (too few breaches)", {
+  set.seed(42)
+  ret <- runif(2500, -0.02, 0.02)   # bounded, thin-tailed
+  bt  <- var_backtest(ret, p = 0.99)
+  expect_lt(bt$observed, bt$expected)
+  expect_lt(bt$ratio, 1)
+  expect_lt(bt$p_value, 0.05)
+})
+
+test_that("kupiec flags the too-many-breaches direction on fat tails", {
+  set.seed(42)
+  ret <- rt(2500, df = 3) * 0.005
+  bt  <- var_backtest(ret, p = 0.99)
+  expect_gt(bt$observed, bt$expected)
+  expect_gt(bt$ratio, 1)
+})
+
+test_that("kupiec does not reject when returns are actually normal", {
+  set.seed(1)
+  ret <- rnorm(2500, 0, 0.01)
+  bt  <- var_backtest(ret, p = c(0.95, 0.99))
+  expect_true(all(bt$p_value > 0.05))
+})

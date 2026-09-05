@@ -81,18 +81,26 @@ mod_risk_server <- function(id, prices, ticker) {
              ": peak ", format(m$peak_date, "%d %b %Y"),
              " \u2192 trough ", format(m$trough_date, "%d %b %Y"), " (", rec, ").")
     })
-    
+
     output$var_backtest <- renderUI({
       bt <- var_backtest(ret())
       rows <- lapply(seq_len(nrow(bt)), function(i) {
         r <- bt[i, ]
-        light <- if (r$p_value >= 0.05) c("#5F9E6E", "well calibrated")
-        else if (r$p_value >= 0.01) c("#C9A227", "borderline")
-        else c("#C0564B", "rejected \u2014 too many breaches")
+
+        light <- if (is.na(r$p_value)) {
+          c("#8A8A8A", "insufficient data")
+        } else if (r$p_value >= 0.05) {
+          c("#5F9E6E", "not rejected \u2014 breach rate consistent with the model")
+        } else if (r$observed > r$expected) {
+          c("#C0564B", "rejected \u2014 too many breaches \u2014 model underestimates risk")
+        } else {
+          c("#C9A227", "rejected \u2014 too few breaches \u2014 model is too conservative")
+        }
+
         tags$div(class = "d-flex align-items-center gap-2 mb-2",
                  tags$span(style = paste0("color:", light[1], ";font-size:1.2rem;"), "\u25CF"),
                  tags$span(HTML(sprintf(
-                   "<b>%s VaR</b> \u2014 expected %.0f breaches, observed %d (%.1f\u00d7), Kupiec p = %s \u2014 %s",
+                   "<b>%s VaR</b> \u2014 expected %.0f breaches, observed %d (%.2f\u00d7), Kupiec p = %s \u2014 %s",
                    r$level, r$expected, r$observed, r$ratio, fmt_p(r$p_value), light[2]))))
       })
       tags$div(rows)
